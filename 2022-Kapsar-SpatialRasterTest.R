@@ -136,20 +136,19 @@ dvk_get_raster_metadata <- function(path, coord_name = NULL, attributeList){
   } else if (raster::origin(raster_obj)[1] < 0 & raster::origin(raster_obj)[2] < 0 ){
     # negative x, negative y
     raster_orig <- "Lower Left"
-  } else if (raster::origin(raster_obj)[1] > 0 & raster::origin(raster_obj)[2] < 0 ) {
+  } else if (raster::origin(raster_obj)[1] > 0 & raster::origin(raster_obj)[2] < 0 ){
     # positive x, negative y
     raster_orig <- "Lower Right"
-  } else if (raster::origin(raster_obj)[1] = 0 & raster::origin(raster_obj)[2] < 0 ){
-    raster_orig <- "Unknown"
-    
-  } else if (raster::origin(raster_obj)[1] = 0 & raster::origin(raster_obj)[2] > 0 ){
-    raster_orig <- "Unknown"
-    
-  } else if (raster::origin(raster_obj)[1] > 0 & raster::origin(raster_obj)[2] = 0 ){
-    raster_orig <- "Unknown"
-    
-  } else if (raster::origin(raster_obj)[1] < 0 & raster::origin(raster_obj)[2] = 0 ){
-    raster_orig <- "Unknown"
+  } else if (raster::origin(raster_obj)[1] == 0 & raster::origin(raster_obj)[2] < 0 ){
+    raster_orig <- "Lower Left"
+  } else if (raster::origin(raster_obj)[1] == 0 & raster::origin(raster_obj)[2] > 0 ){
+    raster_orig <- "Upper Left"
+  } else if (raster::origin(raster_obj)[1] > 0 & raster::origin(raster_obj)[2] == 0 ){
+    raster_orig <- "Upper Right"
+  } else if (raster::origin(raster_obj)[1] < 0 & raster::origin(raster_obj)[2] == 0 ){
+    raster_orig <- "Upper Left"
+  } else if (identical(raster::origin(raster_obj), c(0,0))){
+    raster_orig <- "Upper Left"
   }
   
   raster_info <- list(entityName = basename(path),
