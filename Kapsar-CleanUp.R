@@ -275,3 +275,42 @@ vector_pids <- all_pids[Vectors]
 # keep only raster pids
 raster_pids <- all_pids[!all_pids %in% vector_pids]
   # sanity check: complete
+
+
+
+## -- Create SpatialVector -- ##
+
+vector_entity <- doc$dataset$otherEntity[Vectors]
+
+spatialVector <- vector("list", length = length(vector_entity))
+
+for(i in seq_along(vector_entity)){ #length of vector pids
+  spatialVector[[i]] <- 
+    pid_to_eml_entity(d1c@mn,
+                      vector_pids[[i]],
+                      entity_type = "spatialVector",
+                      entityName = vector_entity[[i]]$entityName,
+                      entityDescription = vector_entity[[i]]$entityDescription,
+                      attributeList = vector_entity[[i]]$attributeList,
+                      geometry = "Polygon",
+                      spatialReference = list(horizCoordSysName = "GCS_North_American_1983"))
+}
+
+
+# Check to make sure names are in expected order
+for(i in 1:72){
+  print(spatialVector[[i]]$entityName)
+}
+
+
+# Check to make sure the pids are aligned
+for(i in 1:72){
+  if(vector_pids[[i]] == spatialVector[[i]]$id){
+    print("TRUE")
+  }
+}
+
+# Sanity check: spatialVectors create physicals... based on the pids assigned
+spatialVector[[12]]$physical$objectName
+  # sanity checks out... for now
+
