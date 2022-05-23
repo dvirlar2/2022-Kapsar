@@ -156,45 +156,45 @@ eml_validate(doc)
 
 which_in_eml(doc$dataset$otherEntity, "entityName", 
              function(x) {
-               grepl("SpeedHex_2020_12.zip", x) # find the reference files
+               grepl("Raster_2020_12_Tanker_25km.tif", x) # find the reference files
              })
 
 
-# Raster_2020_12_Tanker_25km.tif  --> [1]
+# Raster_2020_12_Tanker_25km.tif  --> [720]
 twentyFiveKm <- which_in_eml(doc$dataset$otherEntity, "entityName", 
                              function(x) {
                                grepl("25km.tif", x) # find the reference files
                              })
 
 # Remove reference file from above
-twentyFiveKm <- twentyFiveKm[-1]
+twentyFiveKm <- head(twentyFiveKm, -1) # remove last value
 
 
-# Raster_2020_12_Tanker_10km.tif  --> [720]
+# Raster_2020_12_Tanker_10km.tif  --> [1]
 tenKm <- which_in_eml(doc$dataset$otherEntity, "entityName", 
                              function(x) {
                                grepl("10km.tif", x) # find the reference files
                              })
 
 # Remove reference file from above
-tenKm <- head(tenKm, -1) # removing the last value
+tenKm <- tail(tenKm, -1) # removing the first value
 
 
-# Coastal_2020_12.tif             --> [528]
+# Coastal_2020_12.tif             --> [193]
 # Remove reference file
-coast_ref <- head(Coastal, -1)
+coast_ref <- tail(Coastal, -1)
 
-# SpeedHex_2020_12.zip            --> [385]
+# SpeedHex_2020_12.zip            --> [336]
 # Remove reference file
-vector_ref <- tail(Vectors, -1) # remove the first value
+vector_ref <- head(Vectors, -1) # remove the last value
 
 
 # Assign 25km reference attributes
-twentyFiveKm_attList <- doc$dataset$otherEntity[[1]]$attributeList
+twentyFiveKm_attList <- doc$dataset$otherEntity[[720]]$attributeList
 
 
 # Create reference id
-doc$dataset$otherEntity[[1]]$attributeList$id <- "25km_attributes" 
+doc$dataset$otherEntity[[720]]$attributeList$id <- "25km_attributes" 
 # use any unique name for your id
 
 
@@ -207,11 +207,11 @@ for (i in twentyFiveKm){ # DON'T OVERWRITE THE REFERENCE ENTITY
 
 
 # Assign 10km reference attributes
-tenKm_attList <- doc$dataset$otherEntity[[720]]$attributeList
+tenKm_attList <- doc$dataset$otherEntity[[1]]$attributeList
 
 
 # Create reference id
-doc$dataset$otherEntity[[720]]$attributeList$id <- "10km_attributes" 
+doc$dataset$otherEntity[[1]]$attributeList$id <- "10km_attributes" 
 # use any unique name for your id
 
 
@@ -224,15 +224,15 @@ for (i in tenKm){ # DON'T OVERWRITE THE REFERENCE ENTITY
 
 
 # Assign coastal reference attributes
-coastal_attList <- doc$dataset$otherEntity[[528]]$attributeList
+coastal_attList <- doc$dataset$otherEntity[[193]]$attributeList
 
 
 # Create reference id
-doc$dataset$otherEntity[[528]]$attributeList$id <- "coastal_attributes" 
+doc$dataset$otherEntity[[193]]$attributeList$id <- "coastal_attributes" 
 # use any unique name for your id
 
 
-for (i in Coastal){ # DON'T OVERWRITE THE REFERENCE ENTITY
+for (i in coast_ref){ # DON'T OVERWRITE THE REFERENCE ENTITY
   doc$dataset$otherEntity[[i]]$attributeList <- coastal_attList
   doc$dataset$otherEntity[[i]]$attributeList <- list(references = "coastal_attributes") # use the id you set above
 }
@@ -250,9 +250,10 @@ doc$dataset$otherEntity[[336]]$attributeList$id <- "speedHex_attributes"
 # use any unique name for your id
 
 
-for (i in 265:335){ # DON'T OVERWRITE THE REFERENCE ENTITY
+for (i in vector_ref){ # DON'T OVERWRITE THE REFERENCE ENTITY
   doc$dataset$otherEntity[[i]]$attributeList <- speedHex_attList
   doc$dataset$otherEntity[[i]]$attributeList <- list(references = "speedHex_attributes") # use the id you set above
 }
 
 eml_validate(doc)
+  # TRUE
