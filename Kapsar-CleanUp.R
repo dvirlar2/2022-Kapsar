@@ -257,3 +257,21 @@ for (i in vector_ref){ # DON'T OVERWRITE THE REFERENCE ENTITY
 
 eml_validate(doc)
   # TRUE
+
+
+## -- Spatial Entity Set Up -- ##
+# Retrieve all pids, and line them up properly
+# retrieve all pids
+all_pids <- get_package(d1c@mn, packageId, file_names = TRUE)
+all_pids <- reorder_pids(all_pids$data, doc) #lines up pids w/correct file
+  # performed sanity checks, things seem to check out
+
+
+# keep only the vector pids
+vector_pids <- all_pids[Vectors]
+  # sanity check: complete
+
+
+# keep only raster pids
+raster_pids <- all_pids[!all_pids %in% vector_pids]
+  # sanity check: complete
