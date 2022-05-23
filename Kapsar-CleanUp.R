@@ -50,3 +50,64 @@ for(i in 1:720){
     doc$dataset$otherEntity[[i]]$entityType <- "application/vnd.shp+zip"
   }
 }
+
+
+
+## -- Unique Entity Descriptions -- ## 
+# Find only tif and shp files
+Rasters <- which_in_eml(doc$dataset$otherEntity, "entityType", "image/geotiff")
+
+
+Coastal <- which_in_eml(doc$dataset$otherEntity, "entityName", 
+                        function(x) {
+                          grepl("Coastal", x) # look for Coastal files only
+                        })
+
+
+# remove coastal from rasters
+Rasters <- Rasters[!Rasters %in% Coastal]
+
+
+Vectors <- which_in_eml(doc$dataset$otherEntity, "entityType", "application/vnd.shp+zip")
+
+
+# Apply above to multiple entities
+for(i in Rasters){
+  t <- doc$dataset$otherEntity[[i]]$entityName
+  t_split <- strsplit(t, split = "_|.tif")
+  
+  # put split string into entity description
+  doc$dataset$otherEntity[[i]]$entityDescription <- 
+    paste("Monthly vessel intensity within", t_split[[1]][[5]], "pixel of", 
+          t_split[[1]][4], "vessels during", 
+          month.name[as.numeric(t_split[[1]][3])], 
+          t_split[[1]][2])
+}
+
+
+# Loop for Coastal data
+for(i in Coastal){
+  t <- doc$dataset$otherEntity[[i]]$entityName
+  t_split <- strsplit(t, split = "_|.tif")
+  
+  # put split string into entity description
+  doc$dataset$otherEntity[[i]]$entityDescription <- 
+    paste("Monthly vessel intensity within 1km pixel of coastlines of the study area during", 
+          month.name[as.numeric(t_split[[1]][3])], 
+          t_split[[1]][2])
+}
+
+
+# Loop for Vector data
+for(i in Vectors){
+  t <- doc$dataset$otherEntity[[i]]$entityName
+  t_split <- strsplit(t, split = "_|.zip")
+  
+  # put split string into entity description
+  doc$dataset$otherEntity[[i]]$entityDescription <- 
+    paste("Vessel data generated from satellite-based automatic identification system (AIS). Data include summaries of vessel speed, number of unique ships, and number of operating days (vessel x date combinations) aggregated by year, month, and ship type. This shapefile contains data during", month.name[as.numeric(t_split[[1]][3])], 
+          t_split[[1]][2])
+}
+
+eml_validate(doc)
+  # TRUE 
