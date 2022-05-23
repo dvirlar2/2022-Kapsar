@@ -7,16 +7,19 @@
 
 
 # To Do's
-# [ ] Check for funding number
+# [X] Check for funding number
+      # F20AC10873-00 ; USFWS
 # [ ] Include funding number
-# [ ] Check for ethics statement
-# [ ] Include ethics statement
+# [X] Check for ethics statement
+# [ ] Include ethics statement 
+      # "These data were collected remotely via satellite by exactEartch Ltd (now Spire Global). In accordance with exactEarth's privacy policy, they have been de-identified and presented in aggregated form to preserve the anonymity of individual vessels. Data do not contain information pertaining to human or animal subjects." 
 # [X] Format IDs
 # [X] Unique Descriptions
-# [ ] FAIR publishing
+# [X] FAIR publishing
 # [ ] Carry over attributes
 # [ ] Convert to SpatialVectors
 # [ ] Convert to SpatialRasters
+# [ ] Add dataset annotations
 
 
 
@@ -55,6 +58,11 @@ eml_validate(doc)
 ## -- FAIR Principles -- ##
 doc <- eml_add_publisher(doc)
 doc <- eml_add_entity_system(doc)
+
+
+
+## -- Discipline Annotations -- ##
+doc <- eml_categorize_dataset(doc, "Human Geography")
 
 
 
