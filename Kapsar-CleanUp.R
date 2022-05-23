@@ -2,7 +2,24 @@
 # Physicals are wrong. Attributes are wrong. 
 # Need to start FRESH and try again. 
 
+
 ## copied from Spatial Raster Test
+
+
+# To Do's
+# [ ] Check for funding number
+# [ ] Include funding number
+# [ ] Check for ethics statement
+# [ ] Include ethics statement
+# [X] Format IDs
+# [X] Unique Descriptions
+# [ ] FAIR publishing
+# [ ] Carry over attributes
+# [ ] Convert to SpatialVectors
+# [ ] Convert to SpatialRasters
+
+
+
 ## -- load libraries -- ##
 # general
 library(dataone)
@@ -32,6 +49,12 @@ get_all_versions(d1c@mn, xml)
 # load in the 20th version
 doc <- read_eml(getObject(d1c@mn, "urn:uuid:0fd5d4e4-4c0e-4f32-8387-ef5176d9c04c"))
 eml_validate(doc)
+
+
+
+## -- FAIR Principles -- ##
+doc <- eml_add_publisher(doc)
+doc <- eml_add_entity_system(doc)
 
 
 
