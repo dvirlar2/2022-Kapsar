@@ -576,3 +576,29 @@ doc$dataset$methods$methodStep[[1]]$description$section <- "<title>Ethical Resea
 
 
 eml_validate(doc)
+
+
+## -- Update package -- ##
+eml_path <- "~/Scratch/North_Pacific_and_Arctic_Marine_Vessel_Traffic.xml"
+write_eml(doc, eml_path)
+
+dp <- replaceMember(dp, xml, replacement = eml_path)
+
+myAccessRules <- data.frame(subject="CN=arctic-data-admins,DC=dataone,DC=org", 
+                            permission="changePermission")
+
+newPackageId <- uploadDataPackage(d1c, dp, public = FALSE,
+                                  accessRules = myAccessRules, quiet = FALSE)
+
+
+## -- set rights & access -- ##
+# Manually set ORCiD
+# kelly Kapsar
+subject <- 'http://orcid.org/0000-0002-2048-5020'
+
+pids <- arcticdatautils::get_package(d1c@mn, packageId)
+
+set_rights_and_access(d1c@mn,
+                      pids = c(xml, pids$data, packageId),
+                      subject = subject,
+                      permissions = c('read', 'write', 'changePermission'))
