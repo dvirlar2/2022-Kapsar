@@ -9,17 +9,17 @@
 # To Do's
 # [X] Check for funding number
       # F20AC10873-00 ; USFWS
-# [ ] Include funding number
+# [X] Include funding number
 # [X] Check for ethics statement
 # [ ] Include ethics statement 
       # "These data were collected remotely via satellite by exactEartch Ltd (now Spire Global). In accordance with exactEarth's privacy policy, they have been de-identified and presented in aggregated form to preserve the anonymity of individual vessels. Data do not contain information pertaining to human or animal subjects." 
 # [X] Format IDs
 # [X] Unique Descriptions
 # [X] FAIR publishing
-# [ ] Carry over attributes
+# [X] Carry over attributes
 # [ ] Convert to SpatialVectors
 # [ ] Convert to SpatialRasters
-# [ ] Add dataset annotations
+# [X] Add dataset annotations
 
 
 
@@ -532,9 +532,47 @@ doc$dataset$otherEntity <- NULL
 eml_validate(doc)
 
 
+## -- Look for Amps -- ##
+# abstract
+doc$dataset$abstract$para <- str_replace_all(doc$dataset$abstract$para,
+                                             "&gt;", ">")
+
+doc$dataset$abstract$para <- str_replace(doc$dataset$abstract$para,
+                                             "GPS", "Global Positioning System (GPS)")
+
+# Sampling Description
+doc$dataset$methods$sampling$samplingDescription <- str_replace_all(doc$dataset$methods$sampling$samplingDescription,
+                                                                    "lt;", "<")
+
+
+## -- Assign Funding -- ##
+# remove funding section
+doc$dataset$project$funding <- NULL
+
+
+eml_award <- eml$award()
+eml_award$funderName <- "United States Fish & Wildlife Service"
+eml_award$awardNumber <- "F20AC10873-00"
+eml_award$title <- "North Pacific and Arctic Marine Vessel Traffic Dataset (2015-2020)"
+eml_award$funderIdentifier <- NULL
+eml_award$awardUrl <- NULL
+
+doc$dataset$project$award <- NULL
+doc$dataset$project$award <- eml_award
+eml_validate(doc)
 
 
 
+## -- Contact Info -- ##
+doc$dataset$contact$positionName <- "PhD Candidate"
 
 
+doc$dataset$contact$electronicMailAddress <- "kelly.kapsar@gmail.com"
+doc$dataset$contact$onlineUrl <- "https://www.canr.msu.edu/people/kelly_kapsar"
 
+
+## -- add in ERP -- ##
+doc$dataset$methods$methodStep[[1]]$description$section <- "<title>Ethical Research Practices</title><para>These data were collected remotely via satellite by exactEartch Ltd (now Spire Global). In accordance with exactEarth's privacy policy, they have been de-identified and presented in aggregated form to preserve the anonymity of individual vessels. Data do not contain information pertaining to human or animal subjects.</para>"
+
+
+eml_validate(doc)
