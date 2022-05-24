@@ -314,3 +314,227 @@ for(i in 1:72){
 spatialVector[[12]]$physical$objectName
   # sanity checks out... for now
 
+
+
+
+
+
+## -- create spatialRasters -- ##
+# load in the edited eml_raster function
+dvk_get_raster_metadata <- function(path, coord_name = NULL, attributeList){
+  
+  # define a raste object
+  raster_obj <- raster::raster(path)
+  #message(paste("Reading raster object with proj4string of ", raster::crs(raster_obj)@projargs))
+  
+  # determine coordinates of raster
+  if (is.null(coord_name)){
+    coord_name <- raster::crs(raster_obj)@projargs
+  }
+  
+  
+  # determine coordinate origins of raster
+  if (raster::origin(raster_obj)[1] > 0 & raster::origin(raster_obj)[2] > 0 ){
+    # positive x, positive y
+    raster_orig <- "Upper Right"
+  } else if (raster::origin(raster_obj)[1] < 0 & raster::origin(raster_obj)[2] > 0 ){
+    # negative x, positive y
+    raster_orig <- "Upper Left"
+  } else if (raster::origin(raster_obj)[1] < 0 & raster::origin(raster_obj)[2] < 0 ){
+    # negative x, negative y
+    raster_orig <- "Lower Left"
+  } else if (raster::origin(raster_obj)[1] > 0 & raster::origin(raster_obj)[2] < 0 ){
+    # positive x, negative y
+    raster_orig <- "Lower Right"
+  } else if (raster::origin(raster_obj)[1] == 0 & raster::origin(raster_obj)[2] < 0 ){
+    raster_orig <- "Lower Left"
+  } else if (raster::origin(raster_obj)[1] == 0 & raster::origin(raster_obj)[2] > 0 ){
+    raster_orig <- "Upper Left"
+  } else if (raster::origin(raster_obj)[1] > 0 & raster::origin(raster_obj)[2] == 0 ){
+    raster_orig <- "Upper Right"
+  } else if (raster::origin(raster_obj)[1] < 0 & raster::origin(raster_obj)[2] == 0 ){
+    raster_orig <- "Upper Left"
+  } else if (identical(raster::origin(raster_obj), c(0,0))){
+    raster_orig <- "Upper Left"
+  }
+  
+  raster_info <- list(entityName = basename(path),
+                      attributeList = attributeList,
+                      spatialReference = list(horizCoordSysName = coord_name),
+                      horizontalAccuracy = list(accuracyReport = "unknown"),
+                      verticalAccuracy = list(accuracyReport = "unknown"),
+                      cellSizeXDirection = raster::res(raster_obj)[1],
+                      cellSizeYDirection = raster::res(raster_obj)[2],
+                      numberOfBands = raster::nbands(raster_obj),
+                      rasterOrigin = raster_orig,
+                      rows = dim(raster_obj)[1],
+                      columns = dim(raster_obj)[2],
+                      verticals = dim(raster_obj)[3],
+                      cellGeometry = "pixel")
+  return(raster_info)
+}
+
+
+# kapsar entity re-organizing
+
+
+# -----------------------------------------------------------------------------
+
+# Coastal
+Coastal <- which_in_eml(doc$dataset$otherEntity, "entityName", 
+                        function(x) {
+                          grepl("Coastal", x) # look for Coastal files only
+                        })
+
+Coastal <- doc$dataset$otherEntity[Coastal]
+
+# reverse the order so it will match the order of the file names
+Coastal <- rev(Coastal)
+
+
+# -----------------------------------------------------------------------------
+
+
+# 10km
+tenKm <- which_in_eml(doc$dataset$otherEntity, "entityName", 
+                      function(x) {
+                        grepl("10km.tif", x) # find the reference files
+                      })
+
+
+tenKm <- doc$dataset$otherEntity[tenKm]
+
+# extract 10km names
+tenKm_names <- vector()
+for(i in 1:length(tenKm)){
+  tenKm_names[[i]] <- tenKm[[i]]$entityName
+}
+
+# put entities in ascending order
+tenKm_asc <- tenKm[order(tenKm_names)]
+
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+
+# 25km
+twentyFiveKm <- which_in_eml(doc$dataset$otherEntity, "entityName", 
+                             function(x) {
+                               grepl("25km.tif", x) # find the reference files
+                             })
+
+
+twentyFiveKm <- doc$dataset$otherEntity[twentyFiveKm]
+
+# extract 10km names
+twentyFiveKm_names <- vector()
+for(i in 1:length(twentyFiveKm)){
+  twentyFiveKm_names[[i]] <- twentyFiveKm[[i]]$entityName
+}
+
+# put entities in ascending order
+twentyFiveKm_asc <- twentyFiveKm[order(twentyFiveKm_names)]
+
+
+# -----------------------------------------------------------------------------
+
+
+# Combine separate but ordered rasters into one combined doc again
+raster_combo <- c(Coastal, tenKm_asc, twentyFiveKm_asc)
+
+
+# -----------------------------------------------------------------------------
+
+
+# Load the coastal tifs
+# Create object with file path to folder containing all the tif files
+coastal_folder <- "~/Tickets-2022/2022-Kapsar/coastal-tifs"
+
+# create list of the file names
+coastal_names <- list.files(coastal_folder, full.names = TRUE)
+
+
+
+# -----------------------------------------------------------------------------
+
+
+# Load the 10km tifs
+# Create object with file path to folder containing all the tif files
+tenKm_folder <- "~/Tickets-2022/2022-Kapsar/10km-tifs"
+
+# create list of the file names
+tenKm_names <- list.files(tenKm_folder, full.names = TRUE)
+
+
+# -----------------------------------------------------------------------------
+
+
+# Load the 20km tifs
+# Create object with file path to folder containing all the tif files
+twentyKm_folder <- "~/Tickets-2022/2022-Kapsar/25km-tifs"
+
+# create list of the file names
+twentyKm_names <- list.files(twentyKm_folder, full.names = TRUE)
+
+
+# -----------------------------------------------------------------------------
+
+
+# Combine separate but ordered rasters into one combined doc again
+raster_names <- c(coastal_names, tenKm_names, twentyKm_names)
+
+
+# -----------------------------------------------------------------------------
+
+
+# check to make sure raster_entity and raster_names are aligned
+for(i in 201:400){
+  if(str_replace_all(basename(raster_names[i]), "-", "_") == raster_combo[[i]]$entityName){
+    print("TRUE")
+  }
+  else{
+    print("FALSE")
+    print(c(str_replace_all(basename(raster_names[i]), "-", "_"), raster_combo[[i]]$entityName))
+  }
+}
+
+# SANITY CHECK: COMPLETE
+
+
+# -----------------------------------------------------------------------------
+
+# Create empty vector length of raster_names.
+# We're going to use this to iterate through
+spatialRaster <- vector("list", length(raster_names))
+
+# create spatial raster entities
+for(i in 1:length(raster_names)){
+  spatialRaster[[i]] <- dvk_get_raster_metadata(raster_names[i],
+                                                coord_name = "GCS_North_American_1983",  # "GCS_WGS_1984" <- from 2022-Webb, # retrieved from get_coord_list
+                                                raster_combo[[i]]$attributeList) 
+}
+
+
+# -----------------------------------------------------------------------------
+
+# Assign newly created spatialRaster AND spatialVector to the doc
+doc$dataset$spatialRaster <- spatialRaster
+doc$dataset$spatialVector <- spatialVector
+
+# Null the otherEntities so that you don't have repeating IDs that would cause issues
+doc$dataset$otherEntity <- NULL
+
+# Moment of truth
+eml_validate(doc)
+
+
+
+
+
+
+
+
