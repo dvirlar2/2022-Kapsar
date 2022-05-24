@@ -11,15 +11,16 @@
       # F20AC10873-00 ; USFWS
 # [X] Include funding number
 # [X] Check for ethics statement
-# [ ] Include ethics statement 
+# [X] Include ethics statement 
       # "These data were collected remotely via satellite by exactEartch Ltd (now Spire Global). In accordance with exactEarth's privacy policy, they have been de-identified and presented in aggregated form to preserve the anonymity of individual vessels. Data do not contain information pertaining to human or animal subjects." 
 # [X] Format IDs
 # [X] Unique Descriptions
 # [X] FAIR publishing
 # [X] Carry over attributes
-# [ ] Convert to SpatialVectors
-# [ ] Convert to SpatialRasters
+# [X] Convert to SpatialVectors
+# [X] Convert to SpatialRasters
 # [X] Add dataset annotations
+# [ ] Add physicals
 
 
 
@@ -37,7 +38,7 @@ library(EML)
 # Set nodes
 d1c <- dataone::D1Client("PROD", "urn:node:ARCTIC")
 
-packageId <- "resource_map_urn:uuid:82a804cb-1ae8-43e5-94ff-8f5ec9865b87"
+packageId <- "resource_map_urn:uuid:a33f0fa5-4317-49ce-aa7c-99983cdada22"
 dp  <- getDataPackage(d1c, identifier = packageId, lazyLoad=TRUE, quiet=FALSE)
 
 
@@ -50,7 +51,11 @@ get_all_versions(d1c@mn, xml)
 
 
 # Load in 16th version
-doc <- read_eml(getObject(d1c@mn, "urn:uuid:c574b58f-7560-4712-bbd1-42b232cb87f4"))
+# Going to be using the pids from otherEntity to assign physicals to spatialRasters
+doc_old <- read_eml(getObject(d1c@mn, "urn:uuid:c574b58f-7560-4712-bbd1-42b232cb87f4"))
+
+doc_new <- read_eml(getObject(d1c@mn, xml))
+
 eml_validate(doc)
 
 
@@ -581,6 +586,143 @@ eml_validate(doc)
 ## -- Update package -- ##
 eml_path <- "~/Scratch/North_Pacific_and_Arctic_Marine_Vessel_Traffic.xml"
 write_eml(doc, eml_path)
+
+dp <- replaceMember(dp, xml, replacement = eml_path)
+
+myAccessRules <- data.frame(subject="CN=arctic-data-admins,DC=dataone,DC=org", 
+                            permission="changePermission")
+
+newPackageId <- uploadDataPackage(d1c, dp, public = FALSE,
+                                  accessRules = myAccessRules, quiet = FALSE)
+
+
+## -- set rights & access -- ##
+# Manually set ORCiD
+# kelly Kapsar
+subject <- 'http://orcid.org/0000-0002-2048-5020'
+
+pids <- arcticdatautils::get_package(d1c@mn, packageId)
+
+set_rights_and_access(d1c@mn,
+                      pids = c(xml, pids$data, packageId),
+                      subject = subject,
+                      permissions = c('read', 'write', 'changePermission'))
+
+
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+## -- add physicals -- ##
+# all_pids <- get_package(d1c@mn, packageId, file_names = TRUE)
+# all_pids <- reorder_pids(all_pids$data, doc)
+#   # this doesn't actually look to be correct... 
+# 
+# 
+# for(i in 1:20){
+#   print(doc$dataset$spatialRaster[[i]]$entityName)
+# }
+# 
+# doc$dataset$spatialRaster[[1]]$attributeList
+
+
+# make a list of all the pids according to the document name, then assign them
+# to the correct spatial raster
+
+raster_names <- vector()
+
+for(i in 1:length(doc$dataset$spatialRaster)){
+ raster_names[[i]] <- (doc$dataset$spatialRaster[[i]]$entityName)
+}
+
+
+all_pids <- vector(length = length(raster_names))
+
+for(i in 1:length(raster_names)){
+  all_pids[[i]] <- selectMember(dp, name = "sysmeta@fileName", value = raster_names[[i]])
+}
+
+# test out the physical
+test_phys <- vector("list")
+
+for (i in 1:length(all_pids)){
+  test_phys[[i]] <- pid_to_eml_physical(d1c@mn, all_pids[[i]])
+}
+test_phys[[1]]$objectName
+test_phys[[1]]$dataFormat
+test_phys[[1]]$id
+test_phys[[1]]$authentication
+test_phys[[1]]$distribution
+
+test_phys[[420]]$objectName
+raster_names[420]
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+# Get all the raster entities
+rasters <- which_in_eml(doc_old$dataset$otherEntity, "entityType", "image/tiff")
+rasters <- doc$dataset$otherEntity[rasters]
+
+
+# # re-arrange them to be in order
+# names <- vector()
+# for (i in 1:length(rasters)){
+#   names[[i]] <- rasters[[i]]$entityName
+# }
+# rasters_ordered <- rasters[order(names)]
+
+
+
+
+# raster_names <- vector()
+# 
+# for(i in 1:length(doc$dataset$spatialRaster)){
+#   raster_names[[i]] <- (rasters[[i]]$entityName)
+# }
+
+
+# Create list of raster names in order of current version doc
+# Why?? Because the names are already in ORDER you want them in
+raster_names <- vector()
+
+for(i in 1:length(doc_new$dataset$spatialRaster)){
+  raster_names[[i]] <- (doc_new$dataset$spatialRaster[[i]]$entityName)
+  raster_names[[i]] <- str_replace_all(raster_names[[i]], "-", "_")
+}
+
+
+# # create an "old" dp version with the resource map that matches the old_xml in doc_old
+# dp_old <- getDataPackage(d1c, 
+#                          identifier = "urn:uuid:28c37466-9e94-41e7-adaa-2ef10fa687cf", 
+#                          lazyLoad=TRUE, quiet=FALSE)
+
+all_pids <- vector(length = length(raster_names))
+
+for(i in 1:length(raster_names)){
+  all_pids[[i]] <- selectMember(dp, name = "sysmeta@fileName", value = raster_names[[i]])
+}
+
+# create test physicals
+test_phys <- vector("list")
+
+for (i in 1:length(all_pids)){
+  test_phys[[i]] <- pid_to_eml_physical(d1c@mn, all_pids[[i]])
+}
+
+
+# assign physicals for real
+for (i in 1:length(all_pids)){
+  doc_new$dataset$spatialRaster[[i]]$physical <- pid_to_eml_physical(d1c@mn, all_pids[[i]])
+}
+
+eml_validate(doc_new)
+
+
+## -- Update package -- ##
+eml_path <- "~/Scratch/North_Pacific_and_Arctic_Marine_Vessel_Traffic.xml"
+write_eml(doc_new, eml_path)
 
 dp <- replaceMember(dp, xml, replacement = eml_path)
 
