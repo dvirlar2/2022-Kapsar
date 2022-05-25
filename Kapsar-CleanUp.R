@@ -20,7 +20,7 @@
 # [X] Convert to SpatialVectors
 # [X] Convert to SpatialRasters
 # [X] Add dataset annotations
-# [ ] Add physicals
+# [X] Add physicals
 
 
 
@@ -38,7 +38,7 @@ library(EML)
 # Set nodes
 d1c <- dataone::D1Client("PROD", "urn:node:ARCTIC")
 
-packageId <- "resource_map_urn:uuid:a33f0fa5-4317-49ce-aa7c-99983cdada22"
+packageId <- "resource_map_urn:uuid:b89c8e8f-fb19-488f-b9b2-46a37abfdee7"
 dp  <- getDataPackage(d1c, identifier = packageId, lazyLoad=TRUE, quiet=FALSE)
 
 
@@ -46,15 +46,7 @@ dp  <- getDataPackage(d1c, identifier = packageId, lazyLoad=TRUE, quiet=FALSE)
 xml <- selectMember(dp, name = "sysmeta@fileName", value = ".xml")
 
 
-# get all versions of metadata
-get_all_versions(d1c@mn, xml)
-
-
-# Load in 16th version
-# Going to be using the pids from otherEntity to assign physicals to spatialRasters
-doc_old <- read_eml(getObject(d1c@mn, "urn:uuid:c574b58f-7560-4712-bbd1-42b232cb87f4"))
-
-doc_new <- read_eml(getObject(d1c@mn, xml))
+doc <- read_eml(getObject(d1c@mn, xml))
 
 eml_validate(doc)
 
@@ -723,6 +715,85 @@ eml_validate(doc_new)
 ## -- Update package -- ##
 eml_path <- "~/Scratch/North_Pacific_and_Arctic_Marine_Vessel_Traffic.xml"
 write_eml(doc_new, eml_path)
+
+dp <- replaceMember(dp, xml, replacement = eml_path)
+
+myAccessRules <- data.frame(subject="CN=arctic-data-admins,DC=dataone,DC=org", 
+                            permission="changePermission")
+
+newPackageId <- uploadDataPackage(d1c, dp, public = FALSE,
+                                  accessRules = myAccessRules, quiet = FALSE)
+
+
+## -- set rights & access -- ##
+# Manually set ORCiD
+# kelly Kapsar
+subject <- 'http://orcid.org/0000-0002-2048-5020'
+
+pids <- arcticdatautils::get_package(d1c@mn, packageId)
+
+set_rights_and_access(d1c@mn,
+                      pids = c(xml, pids$data, packageId),
+                      subject = subject,
+                      permissions = c('read', 'write', 'changePermission'))
+
+
+#------------------------------------------------------------------------------
+# Change all - to _ in raster entity names and re-upload. I think this will change the order on page
+
+# remove ;gt again
+## -- Look for Amps -- ##
+# abstract
+doc$dataset$abstract$para <- str_replace_all(doc$dataset$abstract$para,
+                                             "&amp;amp;gt;", ">")
+
+doc$dataset$abstract$para <- str_replace_all(doc$dataset$abstract$para,
+                                             "&amp;gt;", ">")
+
+
+## -- Change FormatIDs -- ## 
+# Raster files
+for(i in 1:length(doc$dataset$spatialRaster)){
+  doc$dataset$spatialRaster[[i]]$physical$dataFormat$externallyDefinedFormat$formatName <- "image/geotiff"
+}
+
+
+for(i in 1:length(doc$dataset$spatialRaster)){
+  doc$dataset$spatialRaster[[i]]$entityName <- 
+    str_replace_all(doc$dataset$spatialRaster[[i]]$entityName, "-", "_")
+}
+
+
+## -- update format IDs -- ##
+# get pids of all the files
+
+raster_names <- vector()
+for(i in 1:length(doc$dataset$spatialRaster)){
+  raster_names[[i]] <- (doc$dataset$spatialRaster[[i]]$entityName)
+}
+
+
+# Only raster pids
+all_pids <- vector(length = length(raster_names))
+for(i in 1:length(raster_names)){
+  all_pids[[i]] <- selectMember(dp, name = "sysmeta@fileName", value = raster_names[[i]])
+}
+
+
+for(i in 1:length(all_pids)){
+  sysmeta <- getSystemMetadata(d1c@mn, all_pids[[i]])
+  sysmeta@formatId <- "image/geotiff"
+  updateSystemMetadata(d1c@mn, all_pids[[i]], sysmeta)
+}
+
+
+
+eml_validate(doc)
+
+
+## -- Update package -- ##
+eml_path <- "~/Scratch/North_Pacific_and_Arctic_Marine_Vessel_Traffic.xml"
+write_eml(doc, eml_path)
 
 dp <- replaceMember(dp, xml, replacement = eml_path)
 
