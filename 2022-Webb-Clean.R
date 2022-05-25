@@ -6,7 +6,7 @@
 
 d1c <- dataone::D1Client("PROD", "urn:node:ARCTIC")
 
-packageId <- "resource_map_urn:uuid:fb29fb68-676f-4926-bec2-d1c98a0bdbed"
+packageId <- "resource_map_urn:uuid:4ab8d711-4534-45bb-8554-ba7925ca3a53"
 dp <- dataone::getDataPackage(d1c, packageId, lazyLoad = TRUE, quiet = FALSE)
 
 xml <- selectMember(dp, name = "sysmeta@fileName", value = ".xml")
@@ -125,3 +125,95 @@ myAccessRules <- data.frame(subject="CN=arctic-data-admins,DC=dataone,DC=org",
                             permission="changePermission")
 packageId <- uploadDataPackage(d1c, dp, public = FALSE,
                                accessRules = myAccessRules, quiet = FALSE)
+
+
+#------------------------------------------------------------------------------
+
+# edit funding section
+eml_award1 <- eml$award()
+eml_award1$funderName <- "National Aeronautics and Space Administration"
+eml_award1$awardNumber <- "80NSSC19K134"
+eml_award1$title <- "Future Investigators in NASA Earth and Space Science and Technology"
+eml_award1$funderIdentifier <- NULL
+eml_award1$awardUrl <- NULL
+
+doc$dataset$project$award <- NULL
+doc$dataset$project$award <- eml_award1
+eml_validate(doc)
+
+
+## -- Change FormatIDs -- ## 
+# Raster files -- physicals
+for(i in 1:length(doc$dataset$spatialRaster)){
+  doc$dataset$spatialRaster[[i]]$physical$dataFormat$externallyDefinedFormat$formatName <- "image/geotiff"
+}
+
+
+# Raster files -- sysmeta@fileType
+
+
+
+## -- change amps -- ##
+# Method Steps
+
+
+doc$dataset$methods$methodStep[[5]]$description <- 
+  str_replace(doc$dataset$methods$methodStep[[5]]$description,
+                                             "&amp;amp;amp;gt;", ">")
+
+# Sampling Steps
+doc$dataset$methods$sampling$studyExtent$description$para[[2]] <-
+  str_replace(doc$dataset$methods$sampling$studyExtent$description$para[[2]], "&amp;amp;amp;amp;", "&")
+
+doc$dataset$methods$sampling$studyExtent$description$para[[9]] <-
+  str_replace(doc$dataset$methods$sampling$studyExtent$description$para[[9]], "&amp;amp;amp;amp;", "&")
+
+doc$dataset$methods$sampling$samplingDescription$para[[9]] <-
+  str_replace(doc$dataset$methods$sampling$samplingDescription$para[[9]],
+              "&amp;amp;amp;amp;", "&")
+
+doc$dataset$methods$sampling$samplingDescription$para[[11]] <-
+  str_replace(doc$dataset$methods$sampling$samplingDescription$para[[11]],
+              "&amp;amp;amp;amp;", "&")
+
+
+## -- update format IDs -- ##
+# get pids of all the files
+all_pids <- get_package(d1c@mn, packageId, file_names = TRUE)
+all_pids <- reorder_pids(all_pids$data, doc) #lines up pids w/correct file
+
+for(i in 1:length(all_pids)){
+  sysmeta <- getSystemMetadata(d1c@mn, all_pids[[i]])
+  sysmeta@formatId <- "image/geotiff"
+  updateSystemMetadata(d1c@mn, all_pids[[i]], sysmeta)
+}
+
+
+
+## -- dataset annotations -- ##
+doc <- eml_categorize_dataset(doc, "Hydrology")
+
+
+## -- update package -- ##
+eml_path <- "~/Scratch/Pan_Arctic_surface_water_yearly_and_trend_over.xml"
+write_eml(doc, eml_path)
+
+dp <- replaceMember(dp, xml, replacement = eml_path)
+
+myAccessRules <- data.frame(subject="CN=arctic-data-admins,DC=dataone,DC=org", 
+                            permission="changePermission")
+packageId <- uploadDataPackage(d1c, dp, public = FALSE,
+                               accessRules = myAccessRules, quiet = FALSE)
+
+
+## -- set rights & access -- ##
+# Manually set ORCiD
+# Elizabeth Webb
+subject <- 'http://orcid.org/0000-0001-5398-4478'
+
+pids <- arcticdatautils::get_package(d1c@mn, packageId)
+
+set_rights_and_access(d1c@mn,
+                      pids = c(xml, pids$data, packageId),
+                      subject = subject,
+                      permissions = c('read', 'write', 'changePermission'))
