@@ -6,7 +6,7 @@
 
 d1c <- dataone::D1Client("PROD", "urn:node:ARCTIC")
 
-packageId <- "resource_map_urn:uuid:4ab8d711-4534-45bb-8554-ba7925ca3a53"
+packageId <- "resource_map_urn:uuid:7bb9d53f-f833-4fc1-88f3-0560351b2959"
 dp <- dataone::getDataPackage(d1c, packageId, lazyLoad = TRUE, quiet = FALSE)
 
 xml <- selectMember(dp, name = "sysmeta@fileName", value = ".xml")
@@ -217,3 +217,28 @@ set_rights_and_access(d1c@mn,
                       pids = c(xml, pids$data, packageId),
                       subject = subject,
                       permissions = c('read', 'write', 'changePermission'))
+
+
+
+
+## -- remove more amps -- ##
+library(stringr)
+doc$dataset$methods$sampling$studyExtent$description$para[[2]] <- 
+  str_replace(doc$dataset$methods$sampling$studyExtent$description$para[[2]],
+              "&amp;amp;amp;", "&")
+
+doc$dataset$methods$sampling$studyExtent$description$para[[9]] <- 
+  str_replace(doc$dataset$methods$sampling$studyExtent$description$para[[9]],
+              "&amp;amp;", "&")
+
+doc$dataset$methods$sampling$samplingDescription$para[[11]] <- 
+  str_replace(
+    doc$dataset$methods$sampling$samplingDescription$para[[11]],
+    "&amp;amp;", "&"
+  )
+
+doc$dataset$methods$sampling$samplingDescription$para[[9]] <- 
+  str_replace(
+    doc$dataset$methods$sampling$samplingDescription$para[[9]],
+    "&amp;amp;", "&"
+  )
